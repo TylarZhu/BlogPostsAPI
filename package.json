@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "start": "nodemon ./bin/www"
   },
   "author": "",
   "license": "ISC",
@@ -15,7 +16,9 @@
     "express": "^4.17.3",
     "fast-sort": "^3.1.2",
     "memory-cache": "^0.2.0",
-    "node-fetch": "^2.6.7"
+    "node-fetch": "^2.6.7",
+    "redis": "^4.0.6",
+    "redisscan": "^2.0.0"
   },
   "devDependencies": {
     "jest": "^27.5.1",
