@@ -74,11 +74,15 @@ router.get('/post', (req, res, next) => {
                 Promise.all(response).then(function (payload){
                     let result = payload[0].data.posts, sortResult = [];
                     
-                    // O(nlogn) <==== 
+                    // O(n^2 * logn) combain non reduent elements 
                     for(let i = 1; i < payload.length; i ++) {
-                        console.log(payload[i].data.posts);
-                        if(!binarySearchId(result, payload[i].data.posts.id, 0, result.length)) {
-                            result.push(payload[i]);
+                        for(let j = 0; j < payload[i].data.posts.length; j ++) {
+                            let index = binarySearchId(result, payload[i].data.posts[j].id, 0, result.length);
+                            if(index === -1) {
+                                // result.splice(index, 0, payload[i].data.posts[j]);
+                                result.push(payload[i].data.posts[j]);
+                                quickSort(result, 0, result.length - 1);
+                            }
                         }
                     }
 
@@ -99,7 +103,8 @@ router.get('/post', (req, res, next) => {
 
                     element["sortBy"] = sortBy;
                     element["direction"] = direction;
-                    element["posts"] = sortResult;
+                    if(sortResult.length === 0) element["posts"] = result;
+                    else element["posts"] = sortResult;
 
                     //save it to cache
                     redisClient.lPush("blogs", JSON.stringify(element)).then((response) => {
@@ -117,7 +122,7 @@ router.get('/post', (req, res, next) => {
                     return res.status(500).json({"error": err.message});
                 });
             }).catch((err) => {
-                return console.log(err);
+                return res.status(500).json({"error": err.message});
             });    
         }
     } catch (err) {
@@ -150,23 +155,59 @@ let binarySearch = (arr, x, start, end) => {
 let binarySearchId = (arr, x, start, end) => {
       
     // Base Condition
-    if (start > end) return false;
+    if (start > end) {
+        return -1;
+    }
   
     // Find the middle index
     let mid=Math.floor((start + end)/2);
   
     // Compare mid with given key x
-    if (arr[mid].id === x) return true;
+    if (arr[mid].id === x) return mid;
          
     // If element at mid is greater than x,
     // search in the left half of mid
-    if(arr[mid].id > x)
-        return binarySearch(arr, x, start, mid-1);
-    else
- 
+    if(arr[mid].id > x){
+        return binarySearchId(arr, x, start, mid-1);
+    }
+    else {
+        
         // If element at mid is smaller than x,
         // search in the right half of mid
-        return binarySearch(arr, x, mid+1, end);
+        return binarySearchId(arr, x, mid+1, end);
+    }
+}
+
+function partition(array, start, end){
+    // Taking the last element as the pivot
+    const pivotValue = array[end];
+    let pivotIndex = start; 
+    for (let i = start; i < end; i++) {
+        if (array[i].id < pivotValue.id) {
+        // Swapping elements
+        [array[i], array[pivotIndex]] = [array[pivotIndex], array[i]];
+        // Moving to next element
+        pivotIndex++;
+        }
+    }
+    
+    // Putting the pivot value in the middle
+    [array[pivotIndex], array[end]] = [array[end], array[pivotIndex]] 
+    return pivotIndex;
+};
+
+function quickSort(array, start, end) {
+    // Base case or terminating case
+    if (start >= end) {
+        return;
+    }
+    
+    // Returns pivotIndex
+    let index = partition(array, start, end);
+    
+    // Recursively apply the same logic to the left and right subarrays
+    quickSort(array, start, index - 1);
+    quickSort(array, index + 1, end);
 }
 
 module.exports = router;
